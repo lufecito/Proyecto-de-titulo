@@ -1,0 +1,83 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ 'Editar vehículo' if vehiculo else 'Nuevo vehículo' }}{% endblock %}
+
+{% block content %}
+<div class="body flex-grow-1 px-3">
+  <div class="container-lg">
+    <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center mb-4">
+      <div>
+        <h1 class="h3 mb-1 text-dark">{{ 'Editar vehículo' if vehiculo else 'Nuevo vehículo' }}</h1>
+        <p class="text-medium-emphasis mb-0">El punto de inicio y término se usan como referencia del depósito.</p>
+      </div>
+      <a class="btn btn-outline-secondary" href="{{ url_for('recoleccion_blueprint.vehiculos') }}">Volver</a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {{ form.csrf_token }}
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <label class="form-label" for="identificador">Identificador</label>
+              {{ form.identificador(class_="form-control", id="identificador") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="patente">Patente</label>
+              {{ form.patente(class_="form-control", id="patente") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="nombre">Nombre</label>
+              {{ form.nombre(class_="form-control", id="nombre") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="conductor_id">Conductor</label>
+              {{ form.conductor_id(class_="form-select", id="conductor_id") }}
+            </div>
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <label class="form-label" for="capacidad">Capacidad</label>
+              {{ form.capacidad(class_="form-control", id="capacidad") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="unidad">Unidad</label>
+              {{ form.unidad(class_="form-select", id="unidad") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="perfil_ruteo">Perfil de ruteo</label>
+              {{ form.perfil_ruteo(class_="form-select", id="perfil_ruteo") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="estado_disponibilidad">Disponibilidad</label>
+              {{ form.estado_disponibilidad(class_="form-select", id="estado_disponibilidad") }}
+            </div>
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <label class="form-label" for="lat_inicio">Latitud inicio</label>
+              {{ form.lat_inicio(class_="form-control", id="lat_inicio") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="lon_inicio">Longitud inicio</label>
+              {{ form.lon_inicio(class_="form-control", id="lon_inicio") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="lat_fin">Latitud término</label>
+              {{ form.lat_fin(class_="form-control", id="lat_fin") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="lon_fin">Longitud término</label>
+              {{ form.lon_fin(class_="form-control", id="lon_fin") }}
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            {{ form.enviar(class_="btn btn-primary") }}
+            <a class="btn btn-outline-secondary" href="{{ url_for('recoleccion_blueprint.vehiculos') }}">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

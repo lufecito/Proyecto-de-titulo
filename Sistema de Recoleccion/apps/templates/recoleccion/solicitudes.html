@@ -1,0 +1,79 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Solicitudes de recolección{% endblock %}
+
+{% block content %}
+<div class="body flex-grow-1 px-3">
+  <div class="container-lg">
+    <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center mb-4">
+      <div>
+        <h1 class="h3 mb-1 text-dark">Solicitudes de recolección</h1>
+        <p class="text-medium-emphasis mb-0">Unidad de trabajo derivada de un ticket, con punto de recolección validado.</p>
+      </div>
+      <a class="btn btn-primary d-inline-flex align-items-center gap-2"
+         href="{{ url_for('recoleccion_blueprint.solicitud_nueva') }}">
+        <svg class="icon"><use xlink:href="/static/assets/vendors/@coreui/icons/svg/free.svg#cil-plus"></use></svg>
+        Nueva solicitud
+      </a>
+    </div>
+
+    <div class="card mb-4 shadow-sm border-0">
+      <div class="card-body p-4">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Ticket</th>
+                <th>Dirección</th>
+                <th>Comuna</th>
+                <th>Prioridad</th>
+                <th>Demanda</th>
+                <th>Punto</th>
+                <th>Operacional</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in solicitudes %}
+              <tr>
+                <td><span class="fw-semibold text-dark">{{ s.etiqueta }}</span></td>
+                <td>
+                  <span class="small">{{ s.punto.direccion_normalizada or s.punto.direccion_original or '-' }}</span>
+                  {% if s.punto.latitud %}
+                  <div class="small text-medium-emphasis">{{ "%.6f"|format(s.punto.latitud) }}, {{ "%.6f"|format(s.punto.longitud) }}</div>
+                  {% endif %}
+                </td>
+                <td>{{ s.punto.comuna or '-' }}</td>
+                <td><span class="badge bg-primary-subtle text-primary-emphasis">P{{ s.prioridad }}</span></td>
+                <td>{{ s.demanda }} {{ s.unidad_demanda }}</td>
+                <td>
+                  {% if s.punto.estado_validacion == 'validado' %}
+                  <span class="badge badge-estado-finalizado">Validado</span>
+                  {% else %}
+                  <span class="badge bg-warning text-dark">Pendiente</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% set estados = {'pendiente': 'secondary', 'disponible': 'info', 'asignada': 'primary', 'completada': 'success', 'no_realizada': 'warning', 'cancelada': 'secondary'} %}
+                  <span class="badge bg-{{ estados.get(s.estado_operacional, 'secondary') }}">{{ s.estado_operacional }}</span>
+                </td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-primary"
+                     href="{{ url_for('recoleccion_blueprint.solicitud_editar', solicitud_id=s.id) }}">
+                    Editar
+                  </a>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="8" class="text-center text-medium-emphasis py-4">No hay solicitudes registradas.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

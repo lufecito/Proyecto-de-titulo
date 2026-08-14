@@ -1,0 +1,83 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Historial de recolección{% endblock %}
+
+{% block content %}
+<div class="body flex-grow-1 px-3">
+  <div class="container-lg">
+    <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center mb-4">
+      <div>
+        <h1 class="h3 mb-1 text-dark">Historial</h1>
+        <p class="text-medium-emphasis mb-0">Eventos operacionales y ejecuciones de optimización recientes.</p>
+      </div>
+      <a class="btn btn-outline-secondary" href="{{ url_for('recoleccion_blueprint.indice') }}">Volver</a>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-body p-4">
+            <h2 class="h5 mb-3">Eventos de ruta</h2>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr class="table-light">
+                    <th>Fecha (UTC)</th>
+                    <th>Tipo</th>
+                    <th>Ruta</th>
+                    <th>Actor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for e in eventos %}
+                  <tr>
+                    <td class="small">{{ e.fecha_utc.strftime('%Y-%m-%d %H:%M') if e.fecha_utc else '-' }}</td>
+                    <td><code>{{ e.tipo }}</code></td>
+                    <td class="small">{{ e.ruta.vehiculo.identificador if e.ruta and e.ruta.vehiculo else '-' }}</td>
+                    <td class="small">{{ e.actor.username if e.actor else 'sistema' }}</td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="4" class="text-center text-medium-emphasis py-3">Sin eventos.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-body p-4">
+            <h2 class="h5 mb-3">Ejecuciones de optimización</h2>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr class="table-light">
+                    <th>Estrategia</th>
+                    <th>Solver</th>
+                    <th>Objetivo</th>
+                    <th>Hash entrada</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for e in ejecuciones %}
+                  <tr>
+                    <td><code>{{ e.estrategia }}</code></td>
+                    <td><span class="small">{{ e.estado_solver }}</span></td>
+                    <td>{{ "%.1f"|format(e.objetivo) if e.objetivo is not none else '-' }}</td>
+                    <td class="small text-medium-emphasis">{{ e.hash_entrada[:12] }}…</td>
+                  </tr>
+                  {% else %}
+                  <tr><td colspan="4" class="text-center text-medium-emphasis py-3">Sin ejecuciones.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,58 @@
+services:
+  # Perfil por defecto (sin --profile): SQLite en un volumen.
+  ticketflow:
+    build: .
+    image: ticketflow:local
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SQLITE_PATH: /data/ticketflow.sqlite3
+      REPORTS_DIR: /data/reports
+    ports:
+      - "5005:5005"
+    volumes:
+      - ticketflow_data:/data
+
+  # Perfil postgres: base de datos PostgreSQL + migraciones al arrancar.
+  # Uso:  docker compose --profile postgres up --build
+  db:
+    image: postgres:16-alpine
+    profiles: [postgres]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ticketflow}
+      POSTGRES_USER: ${DB_USERNAME:-ticketflow}
+      POSTGRES_PASSWORD: ${DB_PASS:-ticketflow}
+    volumes:
+      - ticketflow_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-ticketflow} -d ${DB_NAME:-ticketflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  ticketflow-postgres:
+    build: .
+    image: ticketflow:local
+    profiles: [postgres]
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_ENGINE: postgresql
+      DB_NAME: ${DB_NAME:-ticketflow}
+      DB_HOST: db
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USERNAME: ${DB_USERNAME:-ticketflow}
+      DB_PASS: ${DB_PASS:-ticketflow}
+      REPORTS_DIR: /data/reports
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5005:5005"
+    volumes:
+      - ticketflow_data:/data
+
+volumes:
+  ticketflow_data:
+  ticketflow_pg:

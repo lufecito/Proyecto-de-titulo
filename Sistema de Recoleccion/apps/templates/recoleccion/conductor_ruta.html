@@ -1,0 +1,164 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Mi ruta{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="/static/assets/vendors/leaflet/css/leaflet.css">
+<link rel="stylesheet" href="/static/assets/css/recoleccion.css?v=1">
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="body flex-grow-1 px-3">
+  <div class="container-fluid">
+    <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center mb-3">
+      <div>
+        <h1 class="h3 mb-1 text-dark">Mi ruta</h1>
+        <p class="text-medium-emphasis mb-0">
+          {% if current_user.rol == 'Conductor' %}
+            Ruta publicada asignada a su vehículo.
+          {% else %}
+            Seleccione una ruta publicada para inspección.
+          {% endif %}
+        </p>
+      </div>
+      {% if current_user.rol == 'Conductor' and ruta %}
+      <span class="badge bg-primary fs-6">{{ ruta.vehiculo.identificador }}</span>
+      {% endif %}
+    </div>
+
+    {% if not ruta and rutas is defined %}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-3">Rutas publicadas</h2>
+        <div class="list-group">
+          {% for r in rutas %}
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+             href="{{ url_for('recoleccion_blueprint.ruta_mapa', ruta_id=r.id) }}">
+            <div>
+              <strong>{{ r.vehiculo.identificador }}</strong>
+              <span class="text-medium-emphasis ms-2">Jornada {{ r.jornada.fecha_operacional }}</span>
+            </div>
+            <span class="badge bg-success">v{{ r.version_vigente.numero if r.version_vigente else '-' }}</span>
+          </a>
+          {% else %}
+          <div class="text-center text-medium-emphasis py-4">No hay rutas publicadas.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not ruta and current_user.rol == 'Conductor' %}
+    <div class="alert alert-info">No tiene una ruta publicada para la jornada vigente.</div>
+    {% endif %}
+
+    {% if ruta and datos %}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-body p-0">
+        <div id="mapa-ruta" class="mapa-ruta"></div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-3">Paradas de la ruta</h2>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Ticket</th>
+                <th>Dirección</th>
+                <th>Hora estimada</th>
+                <th>Estado</th>
+                {% if current_user.rol != 'Conductor' %}<th></th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in datos.paradas %}
+              <tr>
+                <td>{{ p.posicion + 1 }}</td>
+                <td><span class="fw-semibold">{{ p.numero_ticket or p.solicitud_id }}</span></td>
+                <td><span class="small">{{ p.direccion }}</span></td>
+                <td>{{ p.hora_estimada[11:16] if p.hora_estimada else '-' }}</td>
+                <td>
+                  {% set estados = {'pendiente': 'secondary', 'en_atencion': 'warning', 'completada': 'success', 'no_disponible': 'info', 'incidencia': 'danger', 'omitida': 'secondary'} %}
+                  <span class="badge bg-{{ estados.get(p.estado, 'secondary') }}" data-estado="{{ p.id }}">{{ p.estado }}</span>
+                </td>
+                {% if current_user.rol != 'Conductor' %}<td></td>{% endif %}
+              </tr>
+              {% else %}
+              <tr><td colspan="6" class="text-center text-medium-emphasis py-3">Sin paradas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if current_user.rol == 'Conductor' %}
+        <hr>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-outline-primary" type="button" id="evt-llegada">Marcar llegada</button>
+          <button class="btn btn-success" type="button" id="evt-completar">Completar recolección</button>
+          <button class="btn btn-outline-warning" type="button" id="evt-no-disponible">Punto no disponible</button>
+          <button class="btn btn-outline-danger" type="button" id="evt-incidencia">Registrar incidencia</button>
+        </div>
+        <div id="evento-info" class="alert d-none mt-3 mb-0"></div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<meta name="csrf-token" content="{{ recoleccion_csrf_token }}">
+<meta name="chile-limits-url" content="{{ config.CHILE_LIMITS_SERVICE_URL }}">
+<script src="/static/assets/vendors/leaflet/js/leaflet.js"></script>
+<script src="/static/assets/vendors/esri-leaflet/js/esri-leaflet.js"></script>
+<script src="/static/assets/js/recoleccion/api.js"></script>
+<script src="/static/assets/js/recoleccion/mapa.js"></script>
+{% if ruta and datos %}
+<script>
+  RecoleccionMapa.inicializar('mapa-ruta', {{ datos | tojson }});
+  {% if current_user.rol == 'Conductor' %}
+  (function () {
+    var paradaActual = null;
+    var info = document.getElementById('evento-info');
+    function mostrar(clase, texto) { info.className = 'alert alert-' + clase; info.textContent = texto; }
+    function elegirParada(cb) {
+      var pendientes = {{ datos.paradas | tojson }}.filter(function (p) { return p.estado !== 'completada'; });
+      if (!pendientes.length) { mostrar('info', 'No quedan paradas pendientes.'); return; }
+      var opciones = pendientes.map(function (p, i) { return i + 1 + '. ' + (p.numero_ticket || p.solicitud_id) + ' — ' + p.direccion; }).join('\n');
+      var opcion = prompt('Seleccione la parada (número):\n\n' + opciones, '1');
+      if (opcion === null) return;
+      var idx = parseInt(opcion, 10) - 1;
+      if (isNaN(idx) || idx < 0 || idx >= pendientes.length) { mostrar('danger', 'Opción inválida.'); return; }
+      cb(pendientes[idx]);
+    }
+    function enviarEvento(tipo, p) {
+      mostrar('info', 'Enviando evento...');
+      RecoleccionAPI.eventoParada(p.id, tipo, { idempotencia_key: 'ev-' + tipo + '-' + p.id + '-' + Date.now() })
+        .then(function (r) {
+          mostrar('success', 'Evento registrado (' + (r.duplicado ? 'duplicado' : 'ok') + ').');
+          var badge = document.querySelector('[data-estado="' + p.id + '"]');
+          if (badge) badge.textContent = tipo === 'recoleccion_completada' ? 'completada' : badge.textContent;
+        }).catch(function (e) { mostrar('danger', e.error || 'Error al enviar evento.'); });
+    }
+    document.getElementById('evt-llegada').addEventListener('click', function () {
+      elegirParada(function (p) { enviarEvento('llegada', p); });
+    });
+    document.getElementById('evt-completar').addEventListener('click', function () {
+      elegirParada(function (p) { enviarEvento('recoleccion_completada', p); });
+    });
+    document.getElementById('evt-no-disponible').addEventListener('click', function () {
+      elegirParada(function (p) { enviarEvento('punto_no_disponible', p); });
+    });
+    document.getElementById('evt-incidencia').addEventListener('click', function () {
+      elegirParada(function (p) { enviarEvento('incidencia', p); });
+    });
+  }());
+  {% endif %}
+</script>
+{% endif %}
+{% endblock javascripts %}

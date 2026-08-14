@@ -1,0 +1,99 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Mapa de ruta{% endblock %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="/static/assets/vendors/leaflet/css/leaflet.css">
+<link rel="stylesheet" href="/static/assets/css/recoleccion.css?v=1">
+{% endblock stylesheets %}
+
+{% block content %}
+<div class="body flex-grow-1 px-3">
+  <div class="container-fluid">
+    <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center mb-3">
+      <div>
+        <h1 class="h3 mb-1 text-dark">Mapa de ruta — {{ ruta.vehiculo.identificador }}</h1>
+        <p class="text-medium-emphasis mb-0">
+          Versión {{ version.numero }} ({{ version.tipo }}) · {{ version.estrategia }} {{ version.version_estrategia }}
+          · {{ "%.1f"|format(version.distancia_metros) }} m · {{ "%.0f"|format(version.duracion_seg / 60) }} min
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <label class="form-check form-switch d-inline-flex align-items-center gap-2 mb-0">
+          <input class="form-check-input" type="checkbox" id="capa-limites" checked>
+          <span class="form-check-label small">Límites de Chile</span>
+        </label>
+        <a class="btn btn-outline-secondary"
+           href="{{ url_for('recoleccion_blueprint.planificacion', jornada_id=ruta.jornada_id) }}">Volver</a>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body p-0">
+        <div id="mapa-ruta" class="mapa-ruta"></div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-3">Paradas en orden</h2>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Ticket</th>
+                <th>Dirección</th>
+                <th>Hora estimada</th>
+                <th>Distancia acum.</th>
+                <th>Carga acum.</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in datos.paradas %}
+              <tr>
+                <td>{{ p.posicion + 1 }}</td>
+                <td><span class="fw-semibold">{{ p.numero_ticket or p.solicitud_id }}</span></td>
+                <td><span class="small">{{ p.direccion }}</span></td>
+                <td>
+                  {% if p.hora_estimada %}
+                  {{ p.hora_estimada[11:16] }} <span class="small text-medium-emphasis">(estimado)</span>
+                  {% else %}-{% endif %}
+                </td>
+                <td>{{ "%.1f"|format(p.distancia_acumulada) }} m</td>
+                <td>{{ "%.0f"|format(p.carga_acumulada) }} {{ p.unidad }}</td>
+                <td>
+                  {% set estados = {'pendiente': 'secondary', 'en_atencion': 'warning', 'completada': 'success', 'no_disponible': 'info', 'incidencia': 'danger', 'omitida': 'secondary'} %}
+                  <span class="badge bg-{{ estados.get(p.estado, 'secondary') }}">{{ p.estado }}</span>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="7" class="text-center text-medium-emphasis py-3">Sin paradas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if datos.no_asignadas %}
+        <div class="alert alert-danger mb-0">
+          <strong>Paradas no asignadas:</strong>
+          {% for n in datos.no_asignadas %}<code class="ms-1">{{ n.parada }}</code> ({{ n.motivo }}){% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<meta name="csrf-token" content="{{ recoleccion_csrf_token }}">
+<meta name="chile-limits-url" content="{{ config.CHILE_LIMITS_SERVICE_URL }}">
+<script src="/static/assets/vendors/leaflet/js/leaflet.js"></script>
+<script src="/static/assets/vendors/esri-leaflet/js/esri-leaflet.js"></script>
+<script src="/static/assets/js/recoleccion/mapa.js"></script>
+<script>
+  RecoleccionMapa.inicializar('mapa-ruta', {{ datos | tojson }});
+</script>
+{% endblock javascripts %}

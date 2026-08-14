@@ -1,0 +1,155 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Planificación de jornada{% endblock %}
+
+{% block content %}
+<div class="body flex-grow-1 px-3">
+  <div class="container-lg">
+    <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center mb-4">
+      <div>
+        <h1 class="h3 mb-1 text-dark">Planificación — Jornada {{ jornada.fecha_operacional }}</h1>
+        <p class="text-medium-emphasis mb-0">
+          Depósito: {{ jornada.deposito_direccion or (jornada.deposito_lat ~ ', ' ~ jornada.deposito_lon) }}
+          · Estado: {{ jornada.estado }}
+        </p>
+      </div>
+      <div class="d-flex gap-2">
+        <form method="post" action="{{ url_for('recoleccion_blueprint.jornada_optimizar', jornada_id=jornada.id) }}">
+          <button class="btn btn-primary" type="submit">Optimizar jornada</button>
+        </form>
+        <a class="btn btn-outline-secondary" href="{{ url_for('recoleccion_blueprint.jornadas') }}">Volver</a>
+      </div>
+    </div>
+
+    {% if metricas and metricas.rutas %}
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <div class="card shadow-sm border-0"><div class="card-body p-3">
+          <div class="small text-medium-emphasis">Distancia base</div>
+          <div class="fs-5 fw-semibold">{{ "%.1f"|format(metricas.distancia_base_total_m) if metricas.distancia_base_total_m is not none else '-' }} m</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card shadow-sm border-0"><div class="card-body p-3">
+          <div class="small text-medium-emphasis">Distancia propuesta</div>
+          <div class="fs-5 fw-semibold">{{ "%.1f"|format(metricas.distancia_propuesta_total_m) if metricas.distancia_propuesta_total_m is not none else '-' }} m</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card shadow-sm border-0"><div class="card-body p-3">
+          <div class="small text-medium-emphasis">Diferencia</div>
+          <div class="fs-5 fw-semibold">{{ "%.1f"|format(metricas.diff_distancia_pct) ~ '%' if metricas.diff_distancia_pct is not none else '-' }}</div>
+        </div></div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card shadow-sm border-0"><div class="card-body p-3">
+          <div class="small text-medium-emphasis">Publicaciones</div>
+          <div class="fs-5 fw-semibold">{{ metricas.publicaciones }}</div>
+        </div></div>
+      </div>
+    </div>
+
+    {% for ruta in jornada.rutas %}
+    {% set v = versiones.get(ruta.id, {}) %}
+    <div class="card mb-4 shadow-sm border-0">
+      <div class="card-header bg-white d-flex flex-wrap gap-2 justify-content-between align-items-center">
+        <div>
+          <strong>{{ ruta.vehiculo.identificador }}</strong>
+          <span class="text-medium-emphasis ms-2">{{ ruta.vehiculo.nombre }}</span>
+          {% if ruta.version_vigente %}
+          <span class="badge bg-success ms-2">Publicada v{{ ruta.version_vigente.numero }}</span>
+          {% endif %}
+        </div>
+        <div class="d-flex gap-2">
+          <form method="post" action="{{ url_for('recoleccion_blueprint.ruta_recalcular', ruta_id=ruta.id) }}">
+            <button class="btn btn-sm btn-outline-warning" type="submit">Recalcular</button>
+          </form>
+          <form method="post" action="{{ url_for('recoleccion_blueprint.ruta_publicar', ruta_id=ruta.id) }}">
+            <input type="hidden" name="version_id" value="{{ (v.propuesta.id if v.propuesta else '') }}">
+            <button class="btn btn-sm btn-primary" type="submit" {% if not v.propuesta %}disabled{% endif %}>
+              Publicar propuesta
+            </button>
+          </form>
+        </div>
+      </div>
+      <div class="card-body p-4">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr class="table-light">
+                <th>Tipo</th>
+                <th>Nº</th>
+                <th>Estrategia</th>
+                <th>Solver</th>
+                <th>Distancia</th>
+                <th>Duración</th>
+                <th>Paradas</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for vitem in ruta.versiones %}
+              <tr>
+                <td>
+                  {% set etiquetas = {'linea_base': 'secondary', 'propuesta': 'primary', 'publicada': 'success'} %}
+                  <span class="badge bg-{{ etiquetas.get(vitem.tipo, 'secondary') }}">{{ vitem.tipo }}</span>
+                  {% if vitem.es_vigente %}<span class="badge bg-success">vigente</span>{% endif %}
+                </td>
+                <td>{{ vitem.numero }}</td>
+                <td><code>{{ vitem.estrategia }}</code> <span class="small text-medium-emphasis">{{ vitem.version_estrategia }}</span></td>
+                <td><span class="small">{{ vitem.estado_solver }}</span></td>
+                <td>{{ "%.1f"|format(vitem.distancia_metros) }} m</td>
+                <td>{{ "%.0f"|format(vitem.duracion_seg / 60) }} min</td>
+                <td>{{ vitem.paradas|length }}</td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-primary"
+                     href="{{ url_for('recoleccion_blueprint.ruta_mapa', ruta_id=ruta.id, version_id=vitem.id) }}">
+                    Mapa
+                  </a>
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="8" class="text-center text-medium-emphasis py-3">Sin versiones aún.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% set prop = v.propuesta %}
+        {% if prop and prop.paradas %}
+        <div class="mt-3">
+          <div class="small text-medium-emphasis mb-1">Propuesta (orden sugerido):</div>
+          <div class="d-flex flex-wrap gap-2">
+            {% for p in prop.paradas %}
+            <span class="badge bg-light border text-dark">
+              {{ p.posicion + 1 }}. {{ p.solicitud.etiqueta }}
+              {% if p.estado == 'completada' %}✓{% endif %}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if metricas.no_asignadas %}
+    <div class="card mb-4 shadow-sm border-0 border-danger">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-3 text-danger">Paradas no asignadas</h2>
+        <ul class="mb-0">
+          {% for n in metricas.no_asignadas %}
+          <li><code>{{ n.parada }}</code> — {{ n.motivo }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="alert alert-info">
+      Esta jornada aún no se ha planificado. Pulse <strong>Optimizar jornada</strong>.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock content %}

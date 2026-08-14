@@ -1,0 +1,74 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Nueva jornada{% endblock %}
+
+{% block content %}
+<div class="body flex-grow-1 px-3">
+  <div class="container-lg">
+    <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center mb-4">
+      <div>
+        <h1 class="h3 mb-1 text-dark">Nueva jornada</h1>
+        <p class="text-medium-emphasis mb-0">Seleccione las solicitudes disponibles y los vehículos asignados.</p>
+      </div>
+      <a class="btn btn-outline-secondary" href="{{ url_for('recoleccion_blueprint.jornadas') }}">Volver</a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {{ form.csrf_token }}
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <label class="form-label" for="fecha_operacional">Fecha operacional</label>
+              {{ form.fecha_operacional(class_="form-control", id="fecha_operacional", placeholder="2026-08-15") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="inicio_operacion">Inicio</label>
+              {{ form.inicio_operacion(class_="form-control", id="inicio_operacion", placeholder="2026-08-15T08:00") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="fin_operacion">Fin</label>
+              {{ form.fin_operacion(class_="form-control", id="fin_operacion", placeholder="2026-08-15T16:00") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="responsable_id">Responsable</label>
+              {{ form.responsable_id(class_="form-select", id="responsable_id") }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-8">
+              <label class="form-label" for="deposito_direccion">Dirección del depósito</label>
+              {{ form.deposito_direccion(class_="form-control", id="deposito_direccion") }}
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" for="deposito_lat">Latitud</label>
+              {{ form.deposito_lat(class_="form-control", id="deposito_lat", placeholder="-33.4372") }}
+            </div>
+            <div class="col-md-2">
+              <label class="form-label" for="deposito_lon">Longitud</label>
+              {{ form.deposito_lon(class_="form-control", id="deposito_lon", placeholder="-70.6506") }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label" for="solicitudes">Solicitudes (Ctrl+clic para múltiple)</label>
+              {{ form.solicitudes(class_="form-select", id="solicitudes", size=10) }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="vehiculos">Vehículos (Ctrl+clic para múltiple)</label>
+              {{ form.vehiculos(class_="form-select", id="vehiculos", size=10) }}
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            {{ form.enviar(class_="btn btn-primary") }}
+            <a class="btn btn-outline-secondary" href="{{ url_for('recoleccion_blueprint.jornadas') }}">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

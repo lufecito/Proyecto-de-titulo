@@ -1,0 +1,71 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Recolección{% endblock %}
+
+{% block content %}
+<div class="body flex-grow-1 px-3">
+  <div class="container-lg">
+    <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center mb-4">
+      <div>
+        <h1 class="h3 mb-1 text-dark">Recolección</h1>
+        <p class="text-medium-emphasis mb-0">Optimización dinámica de rutas de camiones recolectores.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-primary" href="{{ url_for('recoleccion_blueprint.jornadas') }}">
+          Jornadas
+        </a>
+        <a class="btn btn-outline-primary" href="{{ url_for('recoleccion_blueprint.mi_ruta') }}">
+          Mi ruta
+        </a>
+      </div>
+    </div>
+
+    <div class="alert alert-{{ 'warning' if estado.nivel == 'warning' else 'success' }} d-flex gap-2 align-items-start" role="alert">
+      <div>
+        <strong>Proveedor cartográfico:</strong> {{ estado.nombre }} ({{ estado.version }})
+        {% if estado.demo %}<span class="badge bg-warning text-dark ms-1">DEMO</span>{% endif %}
+        <div class="small mt-1">{{ estado.mensaje }}</div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <div class="fs-3 fw-semibold text-primary">{{ totales.solicitudes }}</div>
+            <div class="text-medium-emphasis">Solicitudes</div>
+            <a class="small" href="{{ url_for('recoleccion_blueprint.solicitudes') }}">Ver solicitudes</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <div class="fs-3 fw-semibold text-primary">{{ totales.vehiculos }}</div>
+            <div class="text-medium-emphasis">Vehículos</div>
+            <a class="small" href="{{ url_for('recoleccion_blueprint.vehiculos') }}">Ver vehículos</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <div class="fs-3 fw-semibold text-primary">{{ totales.jornadas }}</div>
+            <div class="text-medium-emphasis">Jornadas</div>
+            <a class="small" href="{{ url_for('recoleccion_blueprint.jornadas') }}">Ver jornadas</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card shadow-sm border-0">
+          <div class="card-body">
+            <div class="fs-3 fw-semibold text-primary">{{ totales.rutas }}</div>
+            <div class="text-medium-emphasis">Rutas</div>
+            <a class="small" href="{{ url_for('recoleccion_blueprint.historial') }}">Historial</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

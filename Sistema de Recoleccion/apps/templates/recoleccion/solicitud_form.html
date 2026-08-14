@@ -1,0 +1,135 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ 'Editar solicitud' if modo == 'editar' else 'Nueva solicitud' }}{% endblock %}
+
+{% block content %}
+<div class="body flex-grow-1 px-3">
+  <div class="container-lg">
+    <div class="d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center mb-4">
+      <div>
+        <h1 class="h3 mb-1 text-dark">{{ 'Editar solicitud' if modo == 'editar' else 'Nueva solicitud' }}</h1>
+        <p class="text-medium-emphasis mb-0">Ingrese la dirección y normalice las coordenadas con el botón de búsqueda.</p>
+      </div>
+      <a class="btn btn-outline-secondary" href="{{ url_for('recoleccion_blueprint.solicitudes') }}">Volver</a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {{ form.csrf_token }}
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label" for="ticket_id">Ticket</label>
+              {{ form.ticket_id(class_="form-select", id="ticket_id") }}
+              {% for e in form.ticket_id.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="prioridad">Prioridad</label>
+              {{ form.prioridad(class_="form-select", id="prioridad") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="duracion_servicio_seg">Servicio (seg)</label>
+              {{ form.duracion_servicio_seg(class_="form-control", id="duracion_servicio_seg") }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-8">
+              <label class="form-label" for="direccion_original">Dirección del punto</label>
+              <div class="input-group">
+                {{ form.direccion_original(class_="form-control", id="direccion_original",
+                    placeholder="Ej: Av. Pajaritos 2100, Maipú") }}
+                <button class="btn btn-outline-primary" type="button" id="btn-geocodificar">
+                  Buscar en mapa
+                </button>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" for="comuna">Comuna</label>
+              {{ form.comuna(class_="form-control", id="comuna") }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <label class="form-label" for="latitud">Latitud</label>
+              {{ form.latitud(class_="form-control", id="latitud", placeholder="-33.4372") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="longitud">Longitud</label>
+              {{ form.longitud(class_="form-control", id="longitud", placeholder="-70.6506") }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="referencia">Referencia</label>
+              {{ form.referencia(class_="form-control", id="referencia") }}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <label class="form-label" for="demanda">Demanda estimada</label>
+              {{ form.demanda(class_="form-control", id="demanda") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="unidad_demanda">Unidad</label>
+              {{ form.unidad_demanda(class_="form-select", id="unidad_demanda") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="ventana_inicio">Ventana inicio</label>
+              {{ form.ventana_inicio(class_="form-control", id="ventana_inicio", placeholder="2026-08-15T09:00") }}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="ventana_fin">Ventana fin</label>
+              {{ form.ventana_fin(class_="form-control", id="ventana_fin", placeholder="2026-08-15T12:00") }}
+            </div>
+          </div>
+
+          <div id="geocodificar-info" class="alert d-none"></div>
+
+          <div class="d-flex gap-2">
+            {{ form.enviar(class_="btn btn-primary") }}
+            <a class="btn btn-outline-secondary" href="{{ url_for('recoleccion_blueprint.solicitudes') }}">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<meta name="csrf-token" content="{{ recoleccion_csrf_token }}">
+<script src="/static/assets/js/recoleccion/api.js"></script>
+<script>
+  (function () {
+    var boton = document.getElementById('btn-geocodificar');
+    var direccion = document.getElementById('direccion_original');
+    var info = document.getElementById('geocodificar-info');
+    if (!boton) return;
+
+    function mostrar(clase, texto) {
+      info.className = 'alert alert-' + clase;
+      info.textContent = texto;
+    }
+
+    boton.addEventListener('click', function () {
+      var dir = direccion.value.trim();
+      if (!dir) { mostrar('warning', 'Ingrese una dirección.'); return; }
+      boton.disabled = true;
+      boton.textContent = 'Buscando...';
+      RecoleccionAPI.geocodificar(dir).then(function (r) {
+        document.getElementById('latitud').value = r.lat;
+        document.getElementById('longitud').value = r.lon;
+        if (r.comuna) document.getElementById('comuna').value = r.comuna;
+        mostrar('success', 'Coordenadas obtenidas: ' + r.label + ' (precisión: ' + r.precision + ')');
+      }).catch(function (err) {
+        mostrar('danger', err.error || 'No se pudo geocodificar la dirección.');
+      }).finally(function () {
+        boton.disabled = false;
+        boton.textContent = 'Buscar en mapa';
+      });
+    });
+  }());
+</script>
+{% endblock javascripts %}
